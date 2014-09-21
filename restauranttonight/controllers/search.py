@@ -44,11 +44,18 @@ def nearby(request):
 				allAvailabeRestaurants.extend(availableRestaurants)			
 			index += 1
 		#if deal is availabe for the matching date time return it
-		if allAvailabeRestaurants:			
+		if allAvailabeRestaurants:
+			sortedAllAvailabeRestaurants = sorted(allAvailabeRestaurants, key=lambda k: (-int(k['end_time'])))
+			returnVal = []
+			pickedRestaurantIds = []
+			for sortedAllAvailabeRestaurant in sortedAllAvailabeRestaurants:
+				if sortedAllAvailabeRestaurant['restaurant_id'] not in pickedRestaurantIds:
+					returnVal.append(sortedAllAvailabeRestaurant)
+				pickedRestaurantIds.append(sortedAllAvailabeRestaurant['restaurant_id'])			
 			return {
 				'status': 'success',
 				'data': {
-					'deals': allAvailabeRestaurants
+					'deals': returnVal
 				}
 			}	
 		return {
