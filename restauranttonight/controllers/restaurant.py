@@ -261,5 +261,5 @@ def _formatMyReservedDeal(dbCon, deal):
 	users = dbCon.fetch_all(qry)
 	if not users:
 		return
-	users = [{'user_id': user['id'], 'phone': user['phone'], 'name': user['name']} for user in users]	
+	users = [{'user_id': user['u.id'], 'phone': user['phone'], 'name': user['name']} for user in users]	
 	return {'id':deal['id'], 'name':deal['name'], 'lat': float(deal['latitude']), 'lng': float(deal['longitude']), 'text': deal['text'], 'start_time': deal['start_time'], 'end_time': deal['end_time'], 'address': deal['address'], 'pic_url': deal['pic_url'], 'deal_type': deal['deal_type'], 'deal_msg': deal['deal_msg'], 'restaurant_id':deal['r.id'], 'users': users}
