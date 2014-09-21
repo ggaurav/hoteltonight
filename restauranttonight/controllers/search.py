@@ -3,43 +3,10 @@ from restauranttonight.helpers.geometry import boundingBox
 from restauranttonight.helpers.responseformat import SuccessResp, ErrorResp
 from dbcommons.classes.dbcon import DBCon
 from restauranttonight.helpers.utilities import normalize, _formatTo6Digits
-from threading import Thread
 
 DISTANCE = "2km"
 JD_COUNT = 10
 
-def _getResultsFromJDThreaded(url, jdRestaurantDocIds):
-	data = requests.get(url)
-	jdRestaurants = data.json()
-	jdRestaurants = jdRestaurants['results']
-	jdRestaurantDocIds = []
-	print '####'
-	print jdRestaurants
-	print '####'
-	for restaurant in jdRestaurants:				
-		jdRestaurantDocIds.append(str(restaurant['docId']))
-	print ',,,,,,,,,'	
-	print len(jdRestaurantDocIds)
-	print ',,,,,,,,,'	
-
-def _getResultsFromJD(request, jdRestaurantDocIdsTmp, lat, lng):
-	
-	index = 0	
-	threads = []
-	while True and index < JD_COUNT:
-		#http://hack2014.justdial.com/search/json/justdialapicat/restaurants/kebab/bangalore/13043647/77620617/2km/20/0
-		url = request.registry.settings['justdial.url'] + "/search/json/justdialapicat/restaurants/food/bangalore/%s/%s/%s/20/%d" %(_formatTo6Digits(lat), _formatTo6Digits(lng), DISTANCE, index)
-		print url
-		t = Thread(target = _getResultsFromJDThreaded, args=(url, jdRestaurantDocIds))
-		t.start()
-		threads.append(t)
-		index+=1
-	for t in threads:
-		t.join()
-	print '***'
-	print len(jdRestaurantDocIds)
-	print '***'
-	return jdRestaurantDocIds
 
 #http://0.0.0.0:8969/restauranttonight/nearby?lat=12.9715987&lng=77.5945627&date=2014-09-21&time=600
 def nearby(request):
@@ -51,25 +18,31 @@ def nearby(request):
 		lng = request_params['lng']
 		time = request_params['time']
 		date = request_params['date']
-		
+		index = 0
 		#Since just dial gives only 20 items in a single call
 		#TODO call it in thread
 		allAvailabeRestaurants = []
-		jdRestaurantDocIdsTmp = {}
-		jdRestaurantDocIds = _getResultsFromJD(request, jdRestaurantDocIdsTmp, lat, lng)
-		print '---'
-		print len(jdRestaurantDocIds)
-		print '---'
-		if jdRestaurantDocIds:	
-			print jdRestaurantDocIds
-			jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
-			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and r.jd_doc_id in (%s) group by r.id order by d.end_time desc" %(date, time, jdRestaurantDocIdsStr);
-			print qry
-			availableRestaurants = dbCon.fetch_all(qry)
-			print availableRestaurants			
-			availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]			
-			allAvailabeRestaurants.extend(availableRestaurants)			
-		
+		while True and index < JD_COUNT:
+			#http://hack2014.justdial.com/search/json/justdialapicat/restaurants/kebab/bangalore/13043647/77620617/2km/20/0
+			url = request.registry.settings['justdial.url'] + "/search/json/justdialapicat/restaurants/food/bangalore/%s/%s/%s/20/%d" %(_formatTo6Digits(lat), _formatTo6Digits(lng), DISTANCE, index)
+			print url
+			data = requests.get(url)
+			jdRestaurants = data.json()
+			jdRestaurants = jdRestaurants['results']
+			jdRestaurantDocIds = []
+			print jdRestaurants
+			for restaurant in jdRestaurants:				
+				jdRestaurantDocIds.append(str(restaurant['docId']))
+			if jdRestaurantDocIds:	
+				print jdRestaurantDocIds
+				jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
+				qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and r.jd_doc_id in (%s) group by r.id order by d.end_time desc" %(date, time, jdRestaurantDocIdsStr);
+				print qry
+				availableRestaurants = dbCon.fetch_all(qry)
+				print availableRestaurants			
+				availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]			
+				allAvailabeRestaurants.extend(availableRestaurants)			
+			index += 1
 		#if deal is availabe for the matching date time return it
 		if allAvailabeRestaurants:
 			sortedAllAvailabeRestaurants = sorted(allAvailabeRestaurants, key=lambda k: (-int(k['end_time'])))
