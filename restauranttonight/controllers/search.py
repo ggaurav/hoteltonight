@@ -1,11 +1,11 @@
 import json, requests, traceback
-from restauranttonight.helpers.geometry import boundingBox
+from restauranttonight.helpers.geometry import boundingBox, findDistance
 from restauranttonight.helpers.responseformat import SuccessResp, ErrorResp
 from dbcommons.classes.dbcon import DBCon
 from restauranttonight.helpers.utilities import normalize, _formatTo6Digits
 
 DISTANCE = "2km"
-JD_COUNT = 10
+JD_COUNT = 5
 
 
 #http://0.0.0.0:8969/restauranttonight/nearby?lat=12.9715987&lng=77.5945627&date=2014-09-21&time=600
@@ -40,9 +40,17 @@ def nearby(request):
 				print qry
 				availableRestaurants = dbCon.fetch_all(qry)
 				print availableRestaurants			
-				availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]			
+				availableRestaurants = [_formatRestaurant(restaurant, lat, lng) for restaurant in availableRestaurants]			
 				allAvailabeRestaurants.extend(availableRestaurants)			
 			index += 1
+		if len(allAvailabeRestaurants) < 4:			
+			ourBoundingBox = boundingBox(lat, lng, 3)		
+			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) group by r.id order by d.end_time desc" %(date, time);
+			print qry
+			availableRestaurants = dbCon.fetch_all(qry)
+			print availableRestaurants			
+			availableRestaurants = [_formatRestaurant(restaurant, lat, lng) for restaurant in availableRestaurants]						
+			allAvailabeRestaurants.extend(availableRestaurants)			
 		#if deal is availabe for the matching date time return it
 		if allAvailabeRestaurants:
 			sortedAllAvailabeRestaurants = sorted(allAvailabeRestaurants, key=lambda k: (-int(k['end_time'])))
@@ -57,7 +65,8 @@ def nearby(request):
 				'data': {
 					'deals': returnVal
 				}
-			}	
+			}
+			
 		return {
 				'status': 'error',
 				'data': {
@@ -122,7 +131,7 @@ def onroute(request):
 					print qry
 					availableRestaurants = dbCon.fetch_all(qry)
 					print availableRestaurants				
-					availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]					
+					availableRestaurants = [_formatRestaurant(restaurant, lat, lng) for restaurant in availableRestaurants]					
 					allAvailabeRestaurants.extend(availableRestaurants)								
 				index += 1
 
@@ -150,8 +159,10 @@ def onroute(request):
 				}
 		}
 
-def _formatRestaurant(restaurant):
-	return {'restaurant_id':restaurant['id'], 'name':restaurant['name'], 'lat': float(restaurant['latitude']), 'lng': float(restaurant['longitude']), 'text': restaurant['text'], 'start_time': restaurant['start_time'], 'end_time': restaurant['end_time'], 'address': restaurant['address'], 'pic_url': restaurant['pic_url'], 'deal_type': restaurant['deal_type'], 'deal_msg': restaurant['deal_msg'], 'id': restaurant['d.id']}
+def _formatRestaurant(restaurant, lat, lng):
+	distance = findDistance(restaurant['latitude'], restaurant['longitude'], lat, lng)
+	distance = str("%.1f" % distance) + "km"
+	return {'restaurant_id':restaurant['id'], 'name':restaurant['name'], 'lat': float(restaurant['latitude']), 'lng': float(restaurant['longitude']), 'text': restaurant['text'], 'start_time': restaurant['start_time'], 'end_time': restaurant['end_time'], 'address': restaurant['address'], 'pic_url': restaurant['pic_url'], 'deal_type': restaurant['deal_type'], 'deal_msg': restaurant['deal_msg'], 'id': restaurant['d.id'], 'distance': distance}
 
 
 #search personalisation	
