@@ -45,7 +45,7 @@ def nearby(request):
 			index += 1
 		if len(allAvailabeRestaurants) < 4:			
 			ourBoundingBox = boundingBox(lat, lng, 3)		
-			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) group by r.id order by d.end_time desc" %(date, time);
+			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and (r.latitude between %s and %s) and (r.longitude between %s and %s)  group by r.id order by d.end_time desc" %(date, time, ourBoundingBox[0], ourBoundingBox[1], ourBoundingBox[2], ourBoundingBox[3]);
 			print qry
 			availableRestaurants = dbCon.fetch_all(qry)
 			print availableRestaurants			
@@ -164,5 +164,6 @@ def _formatRestaurant(restaurant, lat, lng):
 	distance = str("%.1f" % distance) + "km"
 	return {'restaurant_id':restaurant['id'], 'name':restaurant['name'], 'lat': float(restaurant['latitude']), 'lng': float(restaurant['longitude']), 'text': restaurant['text'], 'start_time': restaurant['start_time'], 'end_time': restaurant['end_time'], 'address': restaurant['address'], 'pic_url': restaurant['pic_url'], 'deal_type': restaurant['deal_type'], 'deal_msg': restaurant['deal_msg'], 'id': restaurant['d.id'], 'distance': distance}
 
-
+#12.9715987,77.5945627
+#12.9670503,77.5957239
 #search personalisation	
