@@ -14,7 +14,7 @@ def create(request):
 		restaurant_id = request_params.get('restaurant_id')
 		deal_type = request_params.get('deal_type')
 		deal_msg = request_params.get('deal_msg')
-		qry = "insert into deals values (null, '%s', %s, %s, '%s','new', %s, %s ,'%s', '%s')" %(text, start_time, end_time, date, reservations_allowed, restaurant_id, deal_type, deal_msg)
+		qry = "insert into deals values (null, '%s', %s, %s, '%s','published', %s, %s ,'%s', '%s')" %(text, start_time, end_time, date, reservations_allowed, restaurant_id, deal_type, deal_msg)
 		print qry
 		deal_id = dbCon.insert(qry)
 		return {

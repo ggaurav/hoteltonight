@@ -23,7 +23,7 @@ def create(request):
 		if not device_token:
 			device_token = ''
 		phone = phone.replace('-','').replace('+','')
-		if len(phone == 10):
+		if len(phone) == 10:
 			phone = '91' + phone
 		qry = "select * from users where phone = '%s'" %(phone)
 		user = dbCon.fetch_one(qry)
@@ -53,7 +53,8 @@ def create(request):
 				'user_id': user_id
 			}
 		}
-	except:		
+	except:	
+		traceback.print_exc()	
 		return {
 			'status': 'error',
 			'data': {

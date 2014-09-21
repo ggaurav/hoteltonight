@@ -61,7 +61,7 @@ def _searchOnJustDial(dbCon, request, phone, owner_id, name, lat, lng, address, 
 	print qry
 	ourMatchingRestaurant = dbCon.fetch_one(qry)
 	#get the closest matching
-
+	owner_id = int(owner_id)
 	if ourMatchingRestaurant and str(ourMatchingRestaurant['owner_id']) == str(owner_id):
 		return {
 				'status': 'success',
@@ -83,10 +83,10 @@ def _searchOnJustDial(dbCon, request, phone, owner_id, name, lat, lng, address, 
 	data = requests.get(url)
 	jdRestaurant = data.json()
 	jdRestaurant = jdRestaurant['data']
-	if jdRestaurant and count(jdRestaurant) > 0:
+	if jdRestaurant and len(jdRestaurant) > 0:
 		jdRestaurant = jdRestaurant[0]
 		print jdRestaurant
-		qry = "insert into restaurants values (null, %s, '%s', %s,%s, null,'%s', '%s','%s','%s', '%s', '%s', %d)" %(jdRestaurant['id'], name, _formatTo6Digits(lat), _formatTo6Digits(lng), address, cost_for_2, email, phone, pic_url, jdRestaurant['jdid'], owner_id)
+		qry = "insert into restaurants values (null, %s, '%s', %s,%s, null,'%s', '%s','%s','%s', '%s', '%s', %d)" %(jdRestaurant['id'], name, lat, lng, address, cost_for_2, email, phone, pic_url, jdRestaurant['jdid'], owner_id)
 		print qry
 		restaurant_id = dbCon.insert(qry)
 		return {
