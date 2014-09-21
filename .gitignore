@@ -1,0 +1,17 @@
+# Ignore the env directory in the root
+/env/
+/.idea/
+# Ignore all the compiled python files
+*.py[cod]
+*.egg-info/
+.idea/.name
+.idea/codeStyleSettings.xml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/planning-service.iml
+.idea/scopes/scope_settings.xml
+.idea/vcs.xml
+.idea/workspace.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/inspectionProfiles/profiles_settings.xml
