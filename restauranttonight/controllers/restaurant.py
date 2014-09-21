@@ -2,11 +2,35 @@ from dbcommons.classes.dbcon import DBCon
 from restauranttonight.helpers.utilities import _formatTo6Digits
 from restauranttonight.helpers.jarowinkler import getSimilarity
 from restauranttonight.helpers.geometry import boundingBox
-import requests
+import requests, traceback
 
 DISTANCE = 2
 THRESHOLD_SCORE = 0.8
 JD_COUNT = 5
+
+def getAllRestaurants(request):
+	try:
+		DB_STR = request.registry.settings['sqlalchemy.url']
+		dbCon = DBCon(DB_STR)
+		request_params = request.params		
+		
+		qry = "select * from restaurants"
+		restaurants = dbCon.fetch_all(qry)
+		restaurants = [{'id':restaurant['id'], 'name':restaurant['name']} for restaurant in restaurants]
+		return {
+			'status': 'success',
+			'data': {
+				'restaurants': restaurants
+			}
+		}
+	except:
+		traceback.print_exc()
+		return {
+			'status': 'error',
+			'data': {
+				'msg': "server side error"
+			}
+		}
 
 #http://0.0.0.0:8969/createrestaurantowner?phone=8105254510&password=123
 def createOwner(request):

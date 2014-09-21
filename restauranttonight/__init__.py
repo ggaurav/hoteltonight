@@ -41,6 +41,9 @@ def main(global_config, **settings):
 
 	config.add_route('onroute', '/restauranttonight/onroute', request_method='GET')
 	config.add_view(route_name='onroute', view='restauranttonight.controllers.search.onroute', renderer='json')
+
+	config.add_route('restaurants', '/restauranttonight/restaurants', request_method='GET')
+	config.add_view(route_name='restaurants', view='restauranttonight.controllers.restaurant.getAllRestaurants', renderer='json')
 	
 
 	config.scan()
