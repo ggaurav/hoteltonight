@@ -36,7 +36,7 @@ def nearby(request):
 			if jdRestaurantDocIds:	
 				print jdRestaurantDocIds
 				jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
-				qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and ('%s' between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr);
+				qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr);
 				print qry
 				availableRestaurants = dbCon.fetch_all(qry)
 				print availableRestaurants			
@@ -111,7 +111,7 @@ def onroute(request):
 				if jdRestaurantDocIds:
 					print jdRestaurantDocIds
 					jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"				
-					qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and ('%s' between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr)
+					qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr)
 					print qry
 					availableRestaurants = dbCon.fetch_all(qry)
 					print availableRestaurants				
