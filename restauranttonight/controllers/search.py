@@ -13,12 +13,17 @@ def _getResultsFromJDThreaded(url, jdRestaurantDocIds):
 	jdRestaurants = data.json()
 	jdRestaurants = jdRestaurants['results']
 	jdRestaurantDocIds = []
+	print '####'
 	print jdRestaurants
+	print '####'
 	for restaurant in jdRestaurants:				
 		jdRestaurantDocIds.append(str(restaurant['docId']))
+	print ',,,,,,,,,'	
+	print len(jdRestaurantDocIds)
+	print ',,,,,,,,,'	
 
-
-def _getResultsFromJD(request, jdRestaurantDocIds, lat, lng):
+def _getResultsFromJD(request, jdRestaurantDocIdsTmp, lat, lng):
+	
 	index = 0	
 	threads = []
 	while True and index < JD_COUNT:
@@ -30,7 +35,10 @@ def _getResultsFromJD(request, jdRestaurantDocIds, lat, lng):
 		threads.append(t)
 		index+=1
 	for t in threads:
-		t.join()		
+		t.join()
+	print '***'
+	print len(jdRestaurantDocIds)
+	print '***'
 	return jdRestaurantDocIds
 
 #http://0.0.0.0:8969/restauranttonight/nearby?lat=12.9715987&lng=77.5945627&date=2014-09-21&time=600
@@ -47,8 +55,11 @@ def nearby(request):
 		#Since just dial gives only 20 items in a single call
 		#TODO call it in thread
 		allAvailabeRestaurants = []
-		jdRestaurantDocIds = []
-		_getResultsFromJD(request, jdRestaurantDocIds, lat, lng)
+		jdRestaurantDocIdsTmp = {}
+		jdRestaurantDocIds = _getResultsFromJD(request, jdRestaurantDocIdsTmp, lat, lng)
+		print '---'
+		print len(jdRestaurantDocIds)
+		print '---'
 		if jdRestaurantDocIds:	
 			print jdRestaurantDocIds
 			jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
