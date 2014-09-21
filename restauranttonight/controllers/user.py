@@ -9,9 +9,9 @@ def create(request):
 		DB_STR = request.registry.settings['sqlalchemy.url']
 		dbCon = DBCon(DB_STR)
 		request_params = request.params
-		name = request_params.get('name')
-		phone = request_params.get('phone')
-		token = request_params.get('token')
+		name = request_params['name']
+		phone = request_params['phone']
+		token = request_params['token']
 		if not (phone and token):
 			return {
 				'status': 'error',
@@ -22,6 +22,9 @@ def create(request):
 		device_token = request_params.get('device_token')
 		if not device_token:
 			device_token = ''
+		phone = phone.replace('-','').replace('+','')
+		if len(phone == 10):
+			phone = '91' + phone
 		qry = "select * from users where phone = '%s'" %(phone)
 		user = dbCon.fetch_one(qry)
 		if user:
@@ -90,17 +93,23 @@ def charge(request):
 		request_params = request.params
 		amount = int(float(request_params.get('amount'))*100)
 		user_id = request_params.get('user_id')
-		qry = "select * from users where id = %s" %(user_id)
-		user = dbCon.fetch_one(qry)
+		deal_id = request_params.get('deal_id')
+		qry = "select * from users u join user_deals ud on u.id = ud.user_id where ud.status = 'claimed' and u.id = %s and ud.deal_id = %s" %(user_id, deal_id)		
+		user = dbCon.fetch_one(qry)		
 		stripe.api_key = request.registry.settings['stripe.api_key']
 		charge_id = chargeStripeCustomer(user['customer_id'], user['card_id'], amount)
+
+		qry = "update user_deals set status = 'close' where user_id = %s and deal_id = %s" %(user_id, deal_id)
+		dbCon.update(qry)
+
 		return {
 			'status': 'success',
 			'data': {
 				'charge_id': charge_id
 			}
 		}
-	except:		
+	except:	
+		traceback.print_exc()	
 		return {
 			'status': 'error',
 			'data': {
@@ -136,7 +145,34 @@ def getMyDeals(request):
 		}
 
 def _formatMyDeal(deal):
-	return {'id':deal['d.id'], 'name':deal['name'], 'lat': float(deal['latitude']), 'lng': float(deal['longitude']), 'text': deal['text'], 'start_time': deal['start_time'], 'end_time': deal['end_time'], 'address': deal['address'], 'pic_url': deal['pic_url'], 'deal_type': deal['deal_type'], 'deal_msg': deal['deal_msg'], 'restaurant_id':deal['r.id']}
+	return {'id':deal['d.id'], 'name':deal['name'], 'lat': float(deal['latitude']), 'lng': float(deal['longitude']), 'text': deal['text'], 'start_time': deal['start_time'], 'end_time': deal['end_time'], 'address': deal['address'], 'pic_url': deal['pic_url'], 'deal_type': deal['deal_type'], 'deal_msg': deal['deal_msg'], 'restaurant_id':deal['r.id'], 'user_deal_id': deal['id']}
+
+
+def unclaim(request):
+	try:
+		DB_STR = request.registry.settings['sqlalchemy.url']
+		dbCon = DBCon(DB_STR)
+		request_params = request.params		
+		deal_id = request_params.get('deal_id')
+		user_id = request_params.get('user_id')
+		
+		qry = "update user_deals set status = 'close' where user_id = %s and deal_id = '%s" %(user_id, deal_id)
+		user_deal = dbCon.update(qry)
+
+		return {
+			'status': 'success',
+			'data': {
+				'user_deal_id': user_deal['id']
+			}
+		}
+	except:	
+		traceback.print_exc()	
+		return {
+			'status': 'error',
+			'data': {
+				'msg': "server side error"
+			}
+		}
 
 #unclaim a coupon
 #dispute

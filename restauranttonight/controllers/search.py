@@ -1,4 +1,4 @@
-import json, requests
+import json, requests, traceback
 from restauranttonight.helpers.geometry import boundingBox
 from restauranttonight.helpers.responseformat import SuccessResp, ErrorResp
 from dbcommons.classes.dbcon import DBCon
@@ -8,7 +8,7 @@ DISTANCE = "2km"
 JD_COUNT = 10
 
 
-#http://0.0.0.0:8969/nearby?lat=12.9715987&lng=77.5945627
+#http://0.0.0.0:8969/restauranttonight/nearby?lat=12.9715987&lng=77.5945627&date=2014-09-21&time=600
 def nearby(request):
 	try:
 		DB_STR = request.registry.settings['sqlalchemy.url']
@@ -16,9 +16,12 @@ def nearby(request):
 		request_params = request.params
 		lat = request_params['lat']
 		lng = request_params['lng']
-		time = request_params.get('time')
+		time = request_params['time']
+		date = request_params['date']
 		index = 0
-
+		#Since just dial gives only 20 items in a single call
+		#TODO call it in thread
+		allAvailabeRestaurants = []
 		while True and index < JD_COUNT:
 			#http://hack2014.justdial.com/search/json/justdialapicat/restaurants/kebab/bangalore/13043647/77620617/2km/20/0
 			url = request.registry.settings['justdial.url'] + "/search/json/justdialapicat/restaurants/food/bangalore/%s/%s/%s/20/%d" %(_formatTo6Digits(lat), _formatTo6Digits(lng), DISTANCE, index)
@@ -28,31 +31,26 @@ def nearby(request):
 			jdRestaurants = jdRestaurants['results']
 			jdRestaurantDocIds = []
 			print jdRestaurants
-			for restaurant in jdRestaurants:
-				print '----'
-				print restaurant				
+			for restaurant in jdRestaurants:				
 				jdRestaurantDocIds.append(str(restaurant['docId']))
-			print jdRestaurantDocIds
-			jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
-			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where r.jd_doc_id in (%s)" %(jdRestaurantDocIdsStr);
-			print qry
-			availableRestaurants = dbCon.fetch_all(qry)
-			print availableRestaurants
-			# availableRestaurants = [normalize(restaurant) for restaurant in availableRestaurants]
-			# print availableRestaurants
-			availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]
-			# surroundingBox = boundingBox(lat, lng, 20)
-			# qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where (r.latitude between %f and %f) and (r.longitude between %f and %f) " %(surroundingBox[0], surroundingBox[2], surroundingBox[1], surroundingBox[3])
-			# print qry
-			if availableRestaurants:
-				return {
-					'status': 'success',
-					'data': {
-						'deals': availableRestaurants
-					}
-				}
-
+			if jdRestaurantDocIds:	
+				print jdRestaurantDocIds
+				jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
+				qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and ('%s' between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr);
+				print qry
+				availableRestaurants = dbCon.fetch_all(qry)
+				print availableRestaurants			
+				availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]			
+				allAvailabeRestaurants.extend(availableRestaurants)			
 			index += 1
+		#if deal is availabe for the matching date time return it
+		if allAvailabeRestaurants:
+			return {
+				'status': 'success',
+				'data': {
+					'deals': allAvailabeRestaurants
+				}
+			}	
 		return {
 				'status': 'error',
 				'data': {
@@ -61,6 +59,8 @@ def nearby(request):
 		}
 		
 	except:	
+		import traceback
+		traceback.print_exc()
 		return {
 				'status': 'error',
 				'data': {
@@ -69,7 +69,7 @@ def nearby(request):
 		}
 
 
-#http://0.0.0.0:8969/nearby?lat=12.9715987&lng=77.5945627
+#http://0.0.0.0:8969/restauranttonight/onroute?lat1=12.9715987&lng1=77.5945627&lat2=12.9715987&lng2=77.5945627&date=2014-09-21&time=1220
 def onroute(request):
 	try:
 		DB_STR = request.registry.settings['sqlalchemy.url']
@@ -80,7 +80,8 @@ def onroute(request):
 		lat2 = request_params['lat2']
 		lng2 = request_params['lng2']
 		time = request_params.get('time')
-		
+		date = request_params['date']
+
 		latLngs = [[lat1, lng1]]
 		#here findviaroutes
 		url = request.registry.settings['justdial.url'] + "/directions/viaroute?z=17&output=json&loc=%s,%s&loc=%s,%s&instructions=true" %(lat1, lng1, lat2, lng2)
@@ -90,7 +91,8 @@ def onroute(request):
 		if data and 'via_points' in data and data['via_points']:
 			latLngs.extend(data['via_points'])
 		latLngs.append([lat2, lng2])
-		print latLngs				
+		print latLngs
+		allAvailabeRestaurants = []				
 		for latLng in latLngs:
 			index = 0
 			while True and index < JD_COUNT:
@@ -104,31 +106,27 @@ def onroute(request):
 				jdRestaurants = jdRestaurants['results']
 				jdRestaurantDocIds = []
 				print jdRestaurants
-				for restaurant in jdRestaurants:
-					print '----'
-					print restaurant				
+				for restaurant in jdRestaurants:					
 					jdRestaurantDocIds.append(str(restaurant['docId']))
-				print jdRestaurantDocIds
-				jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"
-				qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where r.jd_doc_id in (%s)" %(jdRestaurantDocIdsStr);
-				print qry
-				availableRestaurants = dbCon.fetch_all(qry)
-				print availableRestaurants
-				# availableRestaurants = [normalize(restaurant) for restaurant in availableRestaurants]
-				# print availableRestaurants
-				availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]
-				# surroundingBox = boundingBox(lat, lng, 20)
-				# qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where (r.latitude between %f and %f) and (r.longitude between %f and %f) " %(surroundingBox[0], surroundingBox[2], surroundingBox[1], surroundingBox[3])
-				# print qry
-				if availableRestaurants:
-					return {
-						'status': 'success',
-						'data': {
-							'deals': availableRestaurants
-						}
-					}
-
+				if jdRestaurantDocIds:
+					print jdRestaurantDocIds
+					jdRestaurantDocIdsStr = "'" +  "','".join(jdRestaurantDocIds) + "'"				
+					qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and ('%s' between d.start_time and d.end_time) and r.jd_doc_id in (%s)" %(date, time, jdRestaurantDocIdsStr)
+					print qry
+					availableRestaurants = dbCon.fetch_all(qry)
+					print availableRestaurants				
+					availableRestaurants = [_formatRestaurant(restaurant) for restaurant in availableRestaurants]					
+					allAvailabeRestaurants.extend(availableRestaurants)								
 				index += 1
+
+		if availableRestaurants:
+			return {
+				'status': 'success',
+				'data': {
+					'deals': allAvailabeRestaurants
+				}
+			}
+
 		return {
 				'status': 'error',
 				'data': {
@@ -137,7 +135,7 @@ def onroute(request):
 		}
 		
 	except:
-		traceback.print_exc	
+		traceback.print_exc()
 		return {
 				'status': 'error',
 				'data': {
