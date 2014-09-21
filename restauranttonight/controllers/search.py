@@ -43,7 +43,7 @@ def nearby(request):
 				availableRestaurants = [_formatRestaurant(restaurant, lat, lng) for restaurant in availableRestaurants]			
 				allAvailabeRestaurants.extend(availableRestaurants)			
 			index += 1
-		if len(allAvailabeRestaurants) < 4:			
+		if len(allAvailabeRestaurants) < 10:			
 			ourBoundingBox = boundingBox(lat, lng, 3)		
 			qry = "select * from restaurants r join deals d on r.id = d.restaurant_id where d.date = '%s' and (%s between d.start_time and d.end_time) and (r.latitude between %s and %s) and (r.longitude between %s and %s)  group by r.id order by d.end_time desc" %(date, time, ourBoundingBox[0], ourBoundingBox[2], ourBoundingBox[1], ourBoundingBox[3]);
 			print qry
